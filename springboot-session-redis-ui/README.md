@@ -150,3 +150,155 @@ user/password
 
 will see Cookie "SESSION"
 
+
+# Other readings:
+
+
+## Could use "@EnableRedisHttpSession"
+
+
+### Example:
+https://stackoverflow.com/questions/50668751/how-to-use-spring-boot-authentication-with-redis-session
+
+application.properties:
+
+```
+spring.session.store-type=redis
+
+server.servlet.session.timeout=3600s
+spring.session.redis.flush-mode=on-save
+spring.session.redis.namespace=spring:session
+
+spring.redis.host=localhost
+spring.redis.port=6379
+```
+
+IndexController.java:
+
+```
+@Controller
+public class IndexController {
+
+    private AuthenticationManager authenticationManager;
+
+    IndexController(AuthenticationManager authenticationManager) {
+        this.authenticationManager = authenticationManager;
+    }
+
+    @GetMapping
+    ResponseEntity index(HttpServletRequest request, HttpSession session) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return new ResponseEntity<>(authentication.getPrincipal(), HttpStatus.OK);
+    }
+
+    @PostMapping("/login")
+    ResponseEntity login(@RequestBody LoginRequest loginRequest) {
+        String username = loginRequest.getUsername();
+        String password = loginRequest.getPassword();
+        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(username, password);
+        Authentication authentication = this.authenticationManager.authenticate(token);
+        // vvv THIS vvv
+        SecurityContextHolder
+            .getContext()
+            .setAuthentication(authentication);
+        return new ResponseEntity<>(authentication.getPrincipal(), HttpStatus.OK);
+    }
+}
+```
+
+Config.java:
+
+```
+@EnableGlobalMethodSecurity(prePostEnabled = true)
+@EnableWebSecurity
+@EnableRedisHttpSession
+@Configuration
+public class Config extends WebSecurityConfigurerAdapter {
+
+    @Autowired
+    private CustomUserDetailsService userDetailsService;
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    @Override
+    public AuthenticationManager authenticationManagerBean() throws Exception {
+        return super.authenticationManagerBean();
+    }
+
+    @Override
+    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+        auth.userDetailsService(userDetailsService);
+    }
+
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+        http
+            .sessionManagement()
+            .sessionCreationPolicy(SessionCreationPolicy.ALWAYS)
+            .and()
+            .csrf()
+            .disable()
+            .authorizeRequests()
+            .anyRequest()
+            .permitAll();
+    }
+}
+```
+
+### Old but interesting testing/demo:
+
+https://javadeveloperzone.com/spring-boot/spring-boot-session-example-using-redis/
+
+application.properties
+
+```
+spring.mvc.view.prefix: /WEB-INF/jsp/
+spring.mvc.view.suffix: .jsp
+```
+
+welcome.jsp
+
+```
+<html>
+<head>
+    <title>Spring boot session example using redis</title>
+</head>
+<body>
+<h2>Spring boot session example using redis</h2>
+Hit Count (Store in redis) : ${sessionScope.hitCounter}
+</body>
+</html>
+```
+
+#### Demo:
+
+- Step 1: Create session
+http://localhost:8080/viewSessionData 
+
+while calling this url, it will create session, store session data in redis and then store cookies information in a browser.
+
+
+- Step 2: Store session information in browser
+It will create SESSION cookies and store in a browser.
+
+Spring boot session example using redis - Cookies
+
+
+- Step 3: Increment Hit Counter
+Spring boot session example using redis - Demo 2
+
+- Step 4: Server down but session has been persisted in Redis so data will not be loss
+Spring boot session example using redis - Server Down
+
+- Step 5: Again Server is up but hit counter remain same
+Spring boot session example using redis - Demo 3
+
+
+
+
+
+
