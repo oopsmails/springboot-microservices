@@ -70,6 +70,21 @@ With Spring Session 2 a session id is stored base64 encoded in the cookie value!
 
 The user is now identified by the value of the SESSION cookie on subsequent requests. When our applications run all on the same domain, we can just authenticate with the cookie. However, in a RESTful API, you usually, don’t want to log in via a cookie.
 
+```
+C:\>rdcli -h 192.168.99.100
+192.168.99.100:6379> keys *
+1) spring:session:sessions:expires:65678faf-d016-4a88-9d4e-50a0950482c4
+2) spring:session:expirations:1565271060000
+3) spring:session:sessions:65678faf-d016-4a88-9d4e-50a0950482c4
+4) spring:session:index:org.springframework.session.FindByIndexNameSessionRepository.PRINCIPAL_NAME_INDEX_NAME:user
+192.168.99.100:6379>
+
+// another example for searching by key:
+192.168.99.100:6379> keys "spring:session:index*"
+1) spring:session:index:org.springframework.session.FindByIndexNameSessionRepository.PRINCIPAL_NAME_INDEX_NAME:user
+
+```
+
 ### For RESTful APIs - Using a Header
 We do not want a session cookies in a RESTful API or many other web APIs. So, let’s get rid of it and handle it via a header accordingly.
 
@@ -117,10 +132,21 @@ You’ll get the username as a response:
 
 `user`
 
-and the header in the response:
+and the header in the response: ????
 
 ```
 
 > X-Auth-Token: 3f749733-f384-47ca-a351-fc71595583f0
 
 ```
+
+========================
+
+springboot-session-redis-ui and springboot-session-redis-api
+
+http://localhost:8080/login
+
+user/password
+
+will see Cookie "SESSION"
+
